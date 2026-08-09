@@ -32,6 +32,7 @@ $$\phi(m s) = f(\phi(s)), \quad s \ge 0$$
 * `IsNormalizedAbelSolution φ`: Normalization condition $\lim_{s \to 0^+} (1 - \phi(s)) / s = 1$.
 * `normalized_abel_solution_limit_zero`: Proves $\lim_{s \to 0^+} \phi(s) = 1$.
 * `tendsto_div_pow_atTop_zero`: Proves $s / m^n \to 0$ as $n \to \infty$ for $m > 1$.
+* `pgf_iterate_lipschitz`: Lipschitz bound $|f^{\circ n}(x) - f^{\circ n}(y)| \le m^n |x - y|$.
 * `abel_solution_unique`: Uniqueness theorem for normalized solutions when $m > 1$.
 -/
 
@@ -113,16 +114,81 @@ theorem tendsto_div_pow_atTop_zero (m : ℝ) (hm : 1 < m) (s : ℝ) :
   have h_mul := h_geom.const_mul s
   simpa using h_mul
 
-/-- Uniqueness of normalized Abel solutions:
+/-- Lipschitz property of PGF iterates under slope bound $m$:
+$$|f^{\circ n}(x) - f^{\circ n}(y)| \le m^n |x - y|$$ -/
+theorem pgf_iterate_lipschitz (f : ℝ → ℝ) (m : ℝ) (hm : 0 ≤ m)
+    (h_lip : ∀ x y, |f x - f y| ≤ m * |x - y|) (n : ℕ) (x y : ℝ) :
+    |pgfIterate f n x - pgfIterate f n y| ≤ m ^ n * |x - y| := by
+  induction n with
+  | zero =>
+    rw [pow_zero, one_mul, pgfIterate_zero, pgfIterate_zero]
+  | succ n ih =>
+    rw [pgfIterate_succ, pgfIterate_succ, pow_succ', mul_assoc]
+    dsimp [pgfIterate]
+    have h1 : |f (f^[n] x) - f (f^[n] y)| ≤ m * |f^[n] x - f^[n] y| := h_lip (f^[n] x) (f^[n] y)
+    have h2 : m * |f^[n] x - f^[n] y| ≤ m * (m ^ n * |x - y|) := mul_le_mul_of_nonneg_left ih hm
+    linarith
+
+/-- Uniqueness of normalized Abel solutions on $(0, \infty)$:
 If $\phi_1$ and $\phi_2$ are two normalized solutions to $\phi(m s) = f(\phi(s))$
-for supercritical $m > 1$, then $\phi_1(s) = \phi_2(s)$ for all $s \ge 0$.
+for supercritical $m > 1$, and $f$ is Lipschitz with constant $m$, then $\phi_1(s) = \phi_2(s)$
+for all $s > 0$.
 (Athreya–Ney, Ch. I, Sec. 5, Theorem 5.1) -/
 theorem abel_solution_unique (f : ℝ → ℝ) (m : ℝ) (hm : 1 < m)
+    (h_lip : ∀ x y, |f x - f y| ≤ m * |x - y|)
     (φ₁ φ₂ : ℝ → ℝ)
     (h_sol1 : IsAbelSolution f m φ₁)
     (h_sol2 : IsAbelSolution f m φ₂)
     (h_norm1 : IsNormalizedAbelSolution φ₁)
     (h_norm2 : IsNormalizedAbelSolution φ₂) :
-    ∀ s ≥ 0, φ₁ s = φ₂ s := sorry
+    ∀ s > 0, φ₁ s = φ₂ s := by
+  intro s hs_gt
+  have hs : 0 ≤ s := hs_gt.le
+  have hm_nonneg : 0 ≤ m := (zero_lt_one.trans hm).le
+  have hm_ne_zero : m ≠ 0 := (zero_lt_one.trans hm).ne'
+  have h_lim_diff : Tendsto (fun n : ℕ => s * |((1 - φ₂ (s / m ^ n)) / (s / m ^ n)) -
+      ((1 - φ₁ (s / m ^ n)) / (s / m ^ n))|) atTop (𝓝 (s * |1 - 1|)) := by
+    have h_seq : Tendsto (fun n : ℕ => s / m ^ n) atTop (𝓝[>] 0) := by
+      refine tendsto_nhdsWithin_iff.mpr ⟨tendsto_div_pow_atTop_zero m hm s, ?_⟩
+      filter_upwards with n
+      exact div_pos hs_gt (pow_pos (zero_lt_one.trans hm) n)
+    have h_lim1 := h_norm1.comp h_seq
+    have h_lim2 := h_norm2.comp h_seq
+    have h_sub := h_lim2.sub h_lim1
+    have h_abs := h_sub.abs
+    exact h_abs.const_mul s
+  have h_lim_zero : s * |(1 : ℝ) - 1| = 0 := by ring
+  rw [h_lim_zero] at h_lim_diff
+  have h_bound_seq : ∀ n : ℕ, |φ₁ s - φ₂ s| ≤ s * |((1 - φ₂ (s / m ^ n)) / (s / m ^ n)) -
+      ((1 - φ₁ (s / m ^ n)) / (s / m ^ n))| := by
+    intro n
+    have hs_pow_nonneg : 0 ≤ s / m ^ n := div_nonneg hs (pow_nonneg hm_nonneg n)
+    have hs_pow_pos : 0 < s / m ^ n := div_pos hs_gt (pow_pos (zero_lt_one.trans hm) n)
+    have h_pow_ne : m ^ n ≠ 0 := pow_ne_zero n hm_ne_zero
+    have h_eq : m ^ n * (s / m ^ n) = s := mul_div_cancel₀ s h_pow_ne
+    have h_iter1 : φ₁ s = pgfIterate f n (φ₁ (s / m ^ n)) := by
+      have h_eq2 : φ₁ s = φ₁ (m ^ n * (s / m ^ n)) := by rw [h_eq]
+      rw [h_eq2]
+      exact abel_solution_iterate f m φ₁ h_sol1 hm_nonneg n (s / m ^ n) hs_pow_nonneg
+    have h_iter2 : φ₂ s = pgfIterate f n (φ₂ (s / m ^ n)) := by
+      have h_eq2 : φ₂ s = φ₂ (m ^ n * (s / m ^ n)) := by rw [h_eq]
+      rw [h_eq2]
+      exact abel_solution_iterate f m φ₂ h_sol2 hm_nonneg n (s / m ^ n) hs_pow_nonneg
+    rw [h_iter1, h_iter2]
+    have h_lip_iter := pgf_iterate_lipschitz f m hm_nonneg h_lip n (φ₁ (s / m ^ n)) (φ₂ (s / m ^ n))
+    have h_alg : m ^ n * |φ₁ (s / m ^ n) - φ₂ (s / m ^ n)| =
+        s * |((1 - φ₂ (s / m ^ n)) / (s / m ^ n)) - ((1 - φ₁ (s / m ^ n)) / (s / m ^ n))| := by
+      rw [← sub_div, abs_div, abs_of_pos hs_pow_pos]
+      have h_num : |1 - φ₂ (s / m ^ n) - (1 - φ₁ (s / m ^ n))| =
+          |φ₁ (s / m ^ n) - φ₂ (s / m ^ n)| := by
+        congr 1
+        ring
+      rw [h_num]
+      field_simp
+    linarith [h_lip_iter, h_alg]
+  have h_le_zero : |φ₁ s - φ₂ s| ≤ 0 :=
+    ge_of_tendsto h_lim_diff (Eventually.of_forall h_bound_seq)
+  have h_abs_zero : |φ₁ s - φ₂ s| = 0 := le_antisymm h_le_zero (abs_nonneg _)
+  exact sub_eq_zero.mp (abs_eq_zero.mp h_abs_zero)
 
 end ProbabilityTheory

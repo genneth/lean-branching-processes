@@ -30,6 +30,7 @@ $$\phi(m s) = f(\phi(s)), \quad s \ge 0$$
 * `abel_solution_extinction`: The constant function $\phi(s) = q$ is a solution when $f(q) = q$.
 * `abel_solution_iterate`: Iterated Abel equation $\phi(m^n s) = f^{\circ n}(\phi(s))$.
 * `IsNormalizedAbelSolution φ`: Normalization condition $\lim_{s \to 0^+} (1 - \phi(s)) / s = 1$.
+* `normalized_abel_solution_limit_zero`: Proves $\lim_{s \to 0^+} \phi(s) = 1$.
 * `abel_solution_unique`: Uniqueness theorem for normalized solutions when $m > 1$.
 -/
 
@@ -83,6 +84,19 @@ theorem abel_solution_iterate (f : ℝ → ℝ) (m : ℝ) (φ : ℝ → ℝ)
 $$\lim_{s \to 0^+} \frac{1 - \phi(s)}{s} = 1$$ -/
 def IsNormalizedAbelSolution (φ : ℝ → ℝ) : Prop :=
   Tendsto (fun s => (1 - φ s) / s) (𝓝[>] 0) (𝓝 1)
+
+/-- Normalized Abel solution limit at $0^+$: $\lim_{s \to 0^+} \phi(s) = 1$. -/
+theorem normalized_abel_solution_limit_zero (φ : ℝ → ℝ)
+    (h_norm : IsNormalizedAbelSolution φ) :
+    Tendsto φ (𝓝[>] 0) (𝓝 1) := by
+  have h_lim : Tendsto (fun s => 1 - s * ((1 - φ s) / s)) (𝓝[>] 0) (𝓝 (1 - 0 * 1)) := by
+    refine tendsto_const_nhds.sub (tendsto_id.mono_left nhdsWithin_le_nhds |>.mul h_norm)
+  have h_sub : (1 - 0 * (1 : ℝ)) = 1 := by ring
+  rw [h_sub] at h_lim
+  refine h_lim.congr' ?_
+  filter_upwards [self_mem_nhdsWithin] with s hs
+  have hs_ne : s ≠ 0 := ne_of_gt hs
+  rw [mul_div_cancel₀ _ hs_ne, sub_sub_cancel]
 
 /-- Uniqueness of normalized Abel solutions:
 If $\phi_1$ and $\phi_2$ are two normalized solutions to $\phi(m s) = f(\phi(s))$

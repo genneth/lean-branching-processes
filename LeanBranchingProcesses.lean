@@ -6,6 +6,7 @@ Authors: Gen Zhang
 import LeanBranchingProcesses.PGF.Basic
 import LeanBranchingProcesses.PGF.Composition
 import LeanBranchingProcesses.PGF.Derivatives
+import LeanBranchingProcesses.PGF.ExponentialMoments
 import LeanBranchingProcesses.GaltonWatson.Basic
 import LeanBranchingProcesses.GaltonWatson.Extinction
 import LeanBranchingProcesses.GaltonWatson.Martingale

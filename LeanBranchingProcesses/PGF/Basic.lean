@@ -35,6 +35,6 @@ noncomputable def pgf (X : Ω → ℕ) (μ : Measure Ω) (z : ℝ) : ℝ :=
 theorem pgf_one (X : Ω → ℕ) (μ : Measure Ω) [IsProbabilityMeasure μ] :
     pgf X μ 1 = 1 := by
   dsimp [pgf]
-  simp only [one_pow, integral_const, measure_univ, enat_toReal_one, smul_eq_mul, mul_one]
+  simp [measure_univ]
 
 end ProbabilityTheory

@@ -11,6 +11,8 @@ import LeanBranchingProcesses.PGF.Basic
 This file defines discrete-time Galton–Watson branching processes.
 -/
 
+open MeasureTheory
+
 namespace ProbabilityTheory
 
 /-- Scaffold for Galton–Watson process definition. -/

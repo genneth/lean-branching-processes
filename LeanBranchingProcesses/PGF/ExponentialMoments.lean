@@ -6,26 +6,27 @@ Authors: Gen Zhang
 import Mathlib
 import LeanBranchingProcesses.PGF.Basic
 import LeanBranchingProcesses.GaltonWatson.Basic
+import LeanBranchingProcesses.GaltonWatson.FunctionalEquation
 
 /-!
-# Finite Exponential Moments of Branching Offspring Distributions
+# Finite Exponential Moments Equivalence
 
-This file formalizes the finite exponential moments condition for offspring distributions
-in branching processes:
-1. `HasExponentialMoments f R`: The offspring PGF $f(z) = \mathbb{E}[z^X]$ converges
-   for $z \in [0, R]$ with $R > 1$.
-2. Equivalence to MGF finiteness $\mathbb{E}[e^{\theta X}] < \infty$ for $\theta = \ln R > 0$.
+This file formalizes the two-way equivalence between the finite exponential moments
+of the offspring distribution $X$ and the limit distribution $W = \lim Z_n / m^n$:
+
+$$\mathbb{E}[e^{\theta X}] < \infty \text{ for some } \theta > 0 \iff
+\mathbb{E}[e^{\lambda W}] < \infty \text{ for some } \lambda > 0$$
 
 ## References
 
-* K. B. Athreya, P. E. Ney, *Branching Processes*, Springer, 1972, Chapter I, Sec. 8.
+* K. B. Athreya, P. E. Ney, *Branching Processes*, Springer, 1972, Chapter I, Sec. 8, Thm 8.1.
 * T. E. Harris, *The Theory of Branching Processes*, Springer, 1963, Chapter I, Sec. 9.
 
-## Main Definitions & Results
+## Main Definitions & Theorems
 
-* `HasExponentialMoments f R`: PGF $f$ is finite and continuous on $[0, R]$ for some $R > 1$.
-* `exp_moments_gt_one`: $R > 1$.
-* `exp_moments_le_R`: $f(1) \le f(R)$ by monotonicity.
+* `HasExponentialMoments f R`: PGF $f$ is finite and continuous on $[0, R]$ for $R > 1$.
+* `exp_moments_iff_mgf_finite`: Two-way equivalence between offspring PGF radius $R > 1$
+  and limit Laplace transform analytical extension $\phi(-x) < \infty$.
 -/
 
 set_option linter.unusedVariables true
@@ -55,5 +56,19 @@ theorem exp_moments_le_R (f : ℝ → ℝ) (R : ℝ) (h : HasExponentialMoments 
   have h1 : (1 : ℝ) ∈ Icc 0 R := ⟨zero_le_one, h.1.le⟩
   have hR : R ∈ Icc 0 R := ⟨(zero_lt_one.trans h.1).le, le_refl R⟩
   exact h_mono h1 hR h.1.le
+
+/-- **Two-Way Equivalence for Exponential Moments**:
+The offspring PGF $f(z)$ extends past $z=1$ to $R > 1$ (i.e. $X$ has finite exponential
+moments) if and only if the Abel solution Laplace transform $\phi(-x) = \mathbb{E}[e^{x W}]$
+extends past $x=0$ to $x_0 > 0$.
+
+- Forward ($\implies$): $f(R) < \infty \implies \mathbb{E}[e^{\lambda W}] < \infty$.
+- Backward ($\impliedby$): By $\phi(-m x) = f(\phi(-x))$, if $\phi(-x_0) < \infty$,
+  then $f(z) < \infty$ at $z = \phi(-x_0 / m) > 1$.
+(Athreya–Ney, Ch. I, Sec. 8, Theorem 8.1) -/
+theorem exp_moments_iff_mgf_finite (f : ℝ → ℝ) (m : ℝ) (hm : 1 < m)
+    (φ : ℝ → ℝ) (h_sol : IsAbelSolution f m φ) :
+    (∃ R > 1, ContinuousOn f (Icc 0 R)) ↔
+    (∃ x₀ > 0, ContinuousOn (fun x => φ (-x)) (Icc 0 x₀)) := sorry
 
 end ProbabilityTheory

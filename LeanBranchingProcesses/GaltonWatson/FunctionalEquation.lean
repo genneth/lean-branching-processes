@@ -31,6 +31,7 @@ $$\phi(m s) = f(\phi(s)), \quad s \ge 0$$
 * `abel_solution_iterate`: Iterated Abel equation $\phi(m^n s) = f^{\circ n}(\phi(s))$.
 * `IsNormalizedAbelSolution φ`: Normalization condition $\lim_{s \to 0^+} (1 - \phi(s)) / s = 1$.
 * `normalized_abel_solution_limit_zero`: Proves $\lim_{s \to 0^+} \phi(s) = 1$.
+* `tendsto_div_pow_atTop_zero`: Proves $s / m^n \to 0$ as $n \to \infty$ for $m > 1$.
 * `abel_solution_unique`: Uniqueness theorem for normalized solutions when $m > 1$.
 -/
 
@@ -97,6 +98,20 @@ theorem normalized_abel_solution_limit_zero (φ : ℝ → ℝ)
   filter_upwards [self_mem_nhdsWithin] with s hs
   have hs_ne : s ≠ 0 := ne_of_gt hs
   rw [mul_div_cancel₀ _ hs_ne, sub_sub_cancel]
+
+/-- The sequence $s / m^n \to 0$ as $n \to \infty$ for any $m > 1$. -/
+theorem tendsto_div_pow_atTop_zero (m : ℝ) (hm : 1 < m) (s : ℝ) :
+    Tendsto (fun n : ℕ => s / m ^ n) atTop (𝓝 0) := by
+  have h_geom : Tendsto (fun n : ℕ => (m⁻¹) ^ n) atTop (𝓝 0) := by
+    apply tendsto_pow_atTop_nhds_zero_of_lt_one
+    · positivity
+    · exact inv_lt_one_iff₀.mpr (Or.inr hm)
+  have h_eq : (fun n : ℕ => s / m ^ n) = (fun n : ℕ => s * (m⁻¹) ^ n) := by
+    ext n
+    rw [div_eq_mul_inv, inv_pow]
+  rw [h_eq]
+  have h_mul := h_geom.const_mul s
+  simpa using h_mul
 
 /-- Uniqueness of normalized Abel solutions:
 If $\phi_1$ and $\phi_2$ are two normalized solutions to $\phi(m s) = f(\phi(s))$

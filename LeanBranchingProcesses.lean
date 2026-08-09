@@ -5,7 +5,9 @@ Authors: Gen Zhang
 -/
 import LeanBranchingProcesses.PGF.Basic
 import LeanBranchingProcesses.PGF.Composition
+import LeanBranchingProcesses.PGF.Derivatives
 import LeanBranchingProcesses.GaltonWatson.Basic
+import LeanBranchingProcesses.GaltonWatson.Extinction
 
 /-!
 # Lean Branching Processes

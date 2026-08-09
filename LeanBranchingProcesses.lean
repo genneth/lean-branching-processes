@@ -9,6 +9,7 @@ import LeanBranchingProcesses.PGF.Derivatives
 import LeanBranchingProcesses.GaltonWatson.Basic
 import LeanBranchingProcesses.GaltonWatson.Extinction
 import LeanBranchingProcesses.GaltonWatson.Martingale
+import LeanBranchingProcesses.GaltonWatson.FunctionalEquation
 
 /-!
 # Lean Branching Processes

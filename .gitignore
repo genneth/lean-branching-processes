@@ -1,0 +1,6 @@
+/.lake
+/.vscode
+*.olean
+*.ilean
+*.trace
+build/

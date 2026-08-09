@@ -10,6 +10,7 @@ import LeanBranchingProcesses.GaltonWatson.Basic
 import LeanBranchingProcesses.GaltonWatson.Extinction
 import LeanBranchingProcesses.GaltonWatson.Martingale
 import LeanBranchingProcesses.GaltonWatson.FunctionalEquation
+import LeanBranchingProcesses.BellmanHarris.IntegralEquation
 
 /-!
 # Lean Branching Processes

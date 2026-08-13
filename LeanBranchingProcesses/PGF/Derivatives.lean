@@ -116,4 +116,58 @@ theorem pgfDerivIter_one_eq_pgfDeriv (X : Ω → ℕ) (μ : Measure Ω) (z : ℝ
   filter_upwards with ω
   simp
 
+/-- **Differentiating under the integral.** The PGF is differentiable on
+$(0, 1)$ with derivative $G'(z) = E[X z^{X-1}]$, assuming $E[X] < ∞$.
+(Feller, Vol. 1, Ch. XI, Sec. 1, Theorem 2, (1.7)) -/
+theorem pgf_hasDerivAt (X : Ω → ℕ) (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (hX : Measurable X) {z : ℝ} (hz0 : 0 < z) (hz1 : z < 1)
+    (h_int : Integrable (fun ω => (X ω : ℝ)) μ) :
+    HasDerivAt (pgf X μ) (pgfDeriv X μ z) z := by
+  have hs : (Ioo 0 1 : Set ℝ) ∈ 𝓝 z := isOpen_Ioo.mem_nhds (by exact ⟨hz0, hz1⟩)
+  have hF_meas : ∀ᶠ x in 𝓝 z, AEStronglyMeasurable (fun ω => x ^ (X ω)) μ := by
+    filter_upwards with x
+    rw [aestronglyMeasurable_iff_aemeasurable]
+    exact ((measurable_from_top : Measurable (fun n : ℕ => x ^ n)).comp hX).aemeasurable
+  have hF_meas_z : AEStronglyMeasurable (fun ω => z ^ (X ω)) μ := by
+    rw [aestronglyMeasurable_iff_aemeasurable]
+    exact ((measurable_from_top : Measurable (fun n : ℕ => z ^ n)).comp hX).aemeasurable
+  have hF_int : Integrable (fun ω => z ^ (X ω)) μ := by
+    refine ⟨hF_meas_z, HasFiniteIntegral.of_bounded (C := 1) ?_⟩
+    filter_upwards with ω
+    rw [Real.norm_eq_abs, abs_of_nonneg (pow_nonneg (le_of_lt hz0) _)]
+    exact pow_le_one₀ (le_of_lt hz0) (le_of_lt hz1)
+  have hF'_meas : AEStronglyMeasurable (fun ω => (X ω : ℝ) * z ^ (X ω - 1)) μ := by
+    rw [aestronglyMeasurable_iff_aemeasurable]
+    have h1 : Measurable (fun ω => (X ω : ℝ)) :=
+      (measurable_from_top : Measurable (fun n : ℕ => (n : ℝ))).comp hX
+    have h2 : Measurable (fun ω => z ^ (X ω - 1)) := by
+      exact (measurable_from_top : Measurable (fun n : ℕ => z ^ n)).comp
+        ((measurable_from_top : Measurable (fun n : ℕ => n - 1)).comp hX)
+    exact (h1.mul h2).aemeasurable
+  have h_bound : ∀ᵐ ω ∂μ, ∀ x ∈ Ioo 0 1, ‖(X ω : ℝ) * x ^ (X ω - 1)‖ ≤ (X ω : ℝ) := by
+    filter_upwards with ω
+    intro x hx
+    have hx0 : 0 ≤ x := le_of_lt hx.1
+    have hx1 : x ≤ 1 := le_of_lt hx.2
+    have hpow1 : x ^ (X ω - 1) ≤ 1 := pow_le_one₀ hx0 hx1
+    have hpow_nn : 0 ≤ x ^ (X ω - 1) := pow_nonneg hx0 _
+    have hX_nn : 0 ≤ (X ω : ℝ) := Nat.cast_nonneg _
+    rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg hX_nn, abs_of_nonneg hpow_nn]
+    simpa using mul_le_mul_of_nonneg_left hpow1 hX_nn
+  have h_diff : ∀ᵐ ω ∂μ, ∀ x ∈ Ioo 0 1,
+      HasDerivAt (fun x => x ^ (X ω)) ((X ω : ℝ) * x ^ (X ω - 1)) x := by
+    filter_upwards with ω
+    intro x hx
+    exact hasDerivAt_pow (X ω) x
+  rcases (hasDerivAt_integral_of_dominated_loc_of_deriv_le
+    (F := fun x ω => x ^ (X ω)) (F' := fun x ω => (X ω : ℝ) * x ^ (X ω - 1))
+    (bound := fun ω => (X ω : ℝ)) hs hF_meas hF_int hF'_meas h_bound h_int h_diff) with ⟨_, h⟩
+  have hfun : pgf X μ = fun n : ℝ => ∫ (a : Ω), n ^ X a ∂μ := by
+    funext n
+    rfl
+  have hderiv : pgfDeriv X μ z = ∫ (a : Ω), (X a : ℝ) * z ^ (X a - 1) ∂μ := by
+    rfl
+  rw [hfun, hderiv]
+  exact h
+
 end ProbabilityTheory

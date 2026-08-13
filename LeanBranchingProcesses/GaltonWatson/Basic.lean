@@ -86,4 +86,12 @@ theorem pgfIterate_zero_monotone (f : ℝ → ℝ) (hf0 : 0 ≤ f 0)
     have h2 := pgfIterate_mem_Icc f hf0 h_mono h_le1 (n + 1)
     exact h_mono h1 h2 ih
 
+/-- **Mean recursion.** The derivative of the $n$-th iterate at $1$ is the $n$-th power
+of the mean: $(f^{\circ n})'(1) = (f'(1))^n$. Equivalently, $E[X_n] = (E[X])^n$.
+(Feller, Vol. 1, Ch. XII, Sec. 1) -/
+theorem pgfIterate_deriv_one (f : ℝ → ℝ) {m : ℝ} (hf : HasDerivAt f m 1) (hf1 : f 1 = 1)
+    (n : ℕ) : HasDerivAt (pgfIterate f n) (m ^ n) 1 := by
+  change HasDerivAt f^[n] (m ^ n) 1
+  exact HasDerivAt.iterate (1 : ℝ) hf hf1 n
+
 end ProbabilityTheory

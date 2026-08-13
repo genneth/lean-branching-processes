@@ -31,6 +31,8 @@ This file defines the probability generating function (PGF) of an `ℕ`-valued r
 * `pgf_le_one`: `pgf X μ z ≤ 1` for `z ∈ [0, 1]` under a probability measure.
 * `pgf_monotone`: `z₁ ≤ z₂ ⇒ pgf X μ z₁ ≤ pgf X μ z₂` for `0 ≤ z₁ ≤ z₂ ≤ 1`.
 * `pgf_eq_mgf`: `pgf X μ z = mgf (fun ω => (X ω : ℝ)) μ (Real.log z)` for `z > 0`.
+* `pgf_eq_tsum`: the power-series / PMF expansion
+  `pgf X μ z = ∑ₙ P(X = n)·zⁿ` for `0 ≤ z < 1`.
 -/
 
 set_option linter.unusedVariables true
@@ -113,5 +115,64 @@ theorem pgf_eq_mgf (X : Ω → ℕ) (μ : Measure Ω) {z : ℝ} (hz : 0 < z) :
   dsimp [pgf, mgf]
   congr 1; ext ω
   rw [← Real.rpow_natCast, Real.rpow_def_of_pos hz]
+
+/-- **Power-series / PMF expansion.** For `0 ≤ z < 1`, the PGF is the power
+series in the probabilities: `pgf X μ z = ∑ₙ P(X = n)·zⁿ`.
+(Feller, Vol. 1, Ch. XI, Eq. 1.5) -/
+theorem pgf_eq_tsum (X : Ω → ℕ) (μ : Measure Ω) [IsProbabilityMeasure μ]
+    (hX : Measurable X) {z : ℝ} (hz0 : 0 ≤ z) (hz1 : z < 1) :
+    pgf X μ z = ∑' n : ℕ, (μ (X ⁻¹' {n})).toReal * z ^ n := by
+  -- The lintegral is the sum over `n` of the fiber integrals.
+  have hlin : (∫⁻ ω, ENNReal.ofReal (z ^ (X ω)) ∂μ) =
+      ∑' n, ENNReal.ofReal (z ^ n) * μ (X ⁻¹' {n}) := by
+    calc
+      (∫⁻ ω, ENNReal.ofReal (z ^ (X ω)) ∂μ)
+          = ∫⁻ ω, ∑' n, (X ⁻¹' {n}).indicator (fun _ => ENNReal.ofReal (z ^ n)) ω ∂μ := by
+            apply lintegral_congr
+            intro ω
+            rw [tsum_eq_single (β := ℕ) (L := SummationFilter.unconditional ℕ) (X ω)]
+            · simp
+            · intro n hn
+              by_cases h : X ω = n
+              · exact (hn h.symm).elim
+              · simp [h]
+      _ = ∑' n, ∫⁻ ω, (X ⁻¹' {n}).indicator (fun _ => ENNReal.ofReal (z ^ n)) ω ∂μ := by
+            exact MeasureTheory.lintegral_tsum
+              (fun n => (Measurable.indicator measurable_const
+                (hX (measurableSet_singleton n))).aemeasurable)
+      _ = ∑' n, ENNReal.ofReal (z ^ n) * μ (X ⁻¹' {n}) := by
+            congr 1
+            funext n
+            rw [MeasureTheory.lintegral_indicator (hX (measurableSet_singleton n)),
+              MeasureTheory.setLIntegral_const]
+  -- The integrand is nonnegative and integrable (bounded by 1).
+  have hnn : 0 ≤ᵐ[μ] fun ω => z ^ (X ω) := by
+    filter_upwards with ω
+    exact pow_nonneg hz0 (X ω)
+  have hint : Integrable (fun ω => z ^ (X ω)) μ := by
+    refine Integrable.mono (integrable_const (1 : ℝ)) ?_ ?_
+    · exact (measurable_const.pow hX).aestronglyMeasurable
+    · filter_upwards with ω
+      rw [Real.norm_eq_abs, abs_of_nonneg (pow_nonneg hz0 (X ω)), norm_one]
+      exact (pow_le_one₀ hz0 (le_of_lt hz1) : z ^ (X ω) ≤ 1)
+  -- Left side: the lintegral is `ENNReal.ofReal (pgf X μ z)`.
+  have hleft : (∫⁻ ω, ENNReal.ofReal (z ^ (X ω)) ∂μ) = ENNReal.ofReal (pgf X μ z) := by
+    dsimp [pgf]
+    exact (MeasureTheory.ofReal_integral_eq_lintegral_ofReal hint hnn).symm
+  -- Right side: convert the ENNReal tsum to a real tsum.
+  have hright : (∑' n, ENNReal.ofReal (z ^ n) * μ (X ⁻¹' {n})).toReal =
+      ∑' n, (μ (X ⁻¹' {n})).toReal * z ^ n := by
+    rw [ENNReal.tsum_toReal_eq]
+    · congr 1
+      funext n
+      rw [ENNReal.toReal_mul, ENNReal.toReal_ofReal (pow_nonneg hz0 n)]
+      ring
+    · intro n
+      exact ENNReal.mul_ne_top ENNReal.ofReal_ne_top (measure_ne_top μ _)
+  -- Combine.
+  have htoReal := congr_arg ENNReal.toReal hlin
+  rw [hleft, hright] at htoReal
+  have hpgf_nn : 0 ≤ pgf X μ z := pgf_nonneg X μ hz0
+  rwa [ENNReal.toReal_ofReal hpgf_nn] at htoReal
 
 end ProbabilityTheory

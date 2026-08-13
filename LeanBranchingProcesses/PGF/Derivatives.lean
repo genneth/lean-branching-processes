@@ -83,4 +83,37 @@ theorem pgfDeriv_zero (X : Ω → ℕ) (μ : Measure Ω) (hX : Measurable X) :
   dsimp [Measure.real]
   rw [Measure.restrict_apply MeasurableSet.univ, univ_inter]
 
+/-- At $z = 1$, the formal derivative equals the mean: $G'(1) = E[X]$.
+(Feller, Vol. 1, Ch. XI, Sec. 1, Theorem 2, (1.9)) -/
+theorem pgfDeriv_one (X : Ω → ℕ) (μ : Measure Ω) :
+    pgfDeriv X μ 1 = ∫ ω, (X ω : ℝ) ∂μ := by
+  dsimp [pgfDeriv]
+  apply integral_congr_ae
+  filter_upwards with ω
+  rw [one_pow, mul_one]
+
+/-- The formal $k$-th derivative of the PGF:
+$G^{(k)}(z) = E[X(X-1)\cdots(X-k+1)\,z^{X-k}]$.
+(Feller, Vol. 1, Ch. XI, Sec. 1, Theorem 3, (1.10)-(1.12)) -/
+noncomputable def pgfDerivIter (k : ℕ) (X : Ω → ℕ) (μ : Measure Ω) (z : ℝ) : ℝ :=
+  ∫ ω, ((X ω).descFactorial k : ℝ) * z ^ (X ω - k) ∂μ
+
+/-- The formal $k$-th derivative at $z = 1$ is the $k$-th factorial moment:
+$G^{(k)}(1) = E[X(X-1)\cdots(X-k+1)]$.
+(Feller, Vol. 1, Ch. XI, Sec. 1, Theorem 3) -/
+theorem pgfDerivIter_one (k : ℕ) (X : Ω → ℕ) (μ : Measure Ω) :
+    pgfDerivIter k X μ 1 = ∫ ω, ((X ω).descFactorial k : ℝ) ∂μ := by
+  dsimp [pgfDerivIter]
+  apply integral_congr_ae
+  filter_upwards with ω
+  rw [one_pow, mul_one]
+
+/-- The first formal derivative agrees with `pgfDeriv`. -/
+theorem pgfDerivIter_one_eq_pgfDeriv (X : Ω → ℕ) (μ : Measure Ω) (z : ℝ) :
+    pgfDerivIter 1 X μ z = pgfDeriv X μ z := by
+  dsimp [pgfDerivIter, pgfDeriv]
+  apply integral_congr_ae
+  filter_upwards with ω
+  simp
+
 end ProbabilityTheory
